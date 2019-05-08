@@ -1,11 +1,34 @@
 ---
 - name: Ensure iptables is present.
-  package: name=iptables state=present
+  package:
+    name: iptables
+    state: present
+
+- name: Install flush script
+  copy:
+    src: iptables-flush.sh
+    dest: /etc/firewall-flush.bash
+    mode: 0755
+    owner: root
+    group: root
+  notify: restart firewall
 
 - name: Flush iptables the first time playbook runs.
   command: >
-    iptables -F
-    creates=/etc/firewall.bash
+      /etc/firewall-flush.bash
+  args:
+    creates: /etc/firewall.bash
+
+- name: Copy firewall systemd unit file into place (for systemd systems).
+  template:
+    src: firewall.unit.j2
+    dest: /etc/systemd/system/firewall.service
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - systemctl daemon-reload
+    - restart firewall
 
 - name: Copy firewall script into place.
   template:
@@ -16,23 +39,7 @@
     mode: 0744
   notify: restart firewall
 
-- name: Copy firewall init script into place.
-  template:
-    src: firewall.init.j2
-    dest: /etc/init.d/firewall
-    owner: root
-    group: root
-    mode: 0755
-  when: "ansible_service_mgr != 'systemd'"
-
-- name: Copy firewall systemd unit file into place (for systemd systems).
-  template:
-    src: firewall.unit.j2
-    dest: /etc/systemd/system/firewall.service
-    owner: root
-    group: root
-    mode: 0644
-  when: "ansible_service_mgr == 'systemd'"
+- meta: flush_handlers
 
 - name: Configure the firewall service.
   service:

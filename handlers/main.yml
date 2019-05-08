@@ -1,3 +1,14 @@
 ---
+
 - name: restart firewall
-  service: name=firewall state=restarted
+  become: true
+  service:
+    name: firewall
+    state: restarted
+  tags: firewall
+
+- name: systemctl daemon-reload
+  become: true
+  systemd:
+    daemon_reload: true
+  tags: firewall
