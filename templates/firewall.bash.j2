@@ -30,9 +30,9 @@ done
 fi
 
 # Completely reset the firewall by removing all rules and chains.
-iptables -P INPUT ACCEPT
-iptables -P FORWARD ACCEPT
-iptables -P OUTPUT ACCEPT
+iptables -P INPUT {{ firewall_default_behaviour }}
+iptables -P FORWARD {{ firewall_default_behaviour }}
+iptables -P OUTPUT {{ firewall_default_behaviour }}
 iptables -t nat -F
 iptables -t mangle -F
 iptables -F
