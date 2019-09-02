@@ -29,6 +29,9 @@ echo 1 > $filter
 done
 fi
 
+
+# = IPv4 ========================================================
+
 # Completely reset the firewall by removing all rules and chains.
 iptables -P INPUT {{ firewall_default_behaviour }}
 iptables -P FORWARD {{ firewall_default_behaviour }}
@@ -64,9 +67,11 @@ iptables -A INPUT -p udp -m udp --dport {{ port }} -j ACCEPT
 # Accept icmp ping requests.
 iptables -A INPUT -p icmp -j ACCEPT
 
+{% if firewall_ntp_allowed %}
 # Allow NTP traffic for time synchronization.
 iptables -A OUTPUT -p udp --dport 123 -j ACCEPT
 iptables -A INPUT -p udp --sport 123 -j ACCEPT
+{% endif %}
 
 # Additional custom rules.
 {% for rule in firewall_additional_rules %}
@@ -84,13 +89,34 @@ iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 iptables -A INPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed by firewall: "
 {% endif %}
 
-# Drop all other traffic.
-iptables -A INPUT -j {{ firewall_disallow_method | default('DROP') }}
+# Disallow all other traffic.
+iptables -A INPUT -j {{ firewall_disallow_method }}
 
+{% if firewall_fallback_rule_disallow_forward %}
+# Disallow all other FORWARD traffic.
+iptables -A FORWARD -j {{ firewall_disallow_method }}
+{% endif %}
+
+{% if firewall_fallback_rule_disallow_output %}
+# Disallow all other OUTPUT traffic.
+iptables -A OUTPUT -j {{ firewall_disallow_method }}
+{% endif %}
+
+
+# = IPv6 ========================================================
 
 # Configure IPv6 if ip6tables is present.
 if [ -x "$(which ip6tables 2>/dev/null)" ]; then
+{% if firewall_ip6_disallow_all %}
+  # Disallow all INPUT traffic.
+  ip6tables -A INPUT -j {{ firewall_disallow_method_ip6 }}
 
+  # Disallow all FORWARD traffic.
+  ip6tables -A FORWARD -j {{ firewall_disallow_method_ip6 }}
+
+  # Disallow all OUTPUT traffic.
+  ip6tables -A OUTPUT -j {{ firewall_disallow_method_ip6 }}
+{% else %}
   # Remove all rules and chains.
   ip6tables -F
   ip6tables -X
@@ -110,9 +136,11 @@ if [ -x "$(which ip6tables 2>/dev/null)" ]; then
   # Accept icmp ping requests.
   ip6tables -A INPUT -p icmp -j ACCEPT
 
+  {% if firewall_ntp_allowed -%}
   # Allow NTP traffic for time synchronization.
   ip6tables -A OUTPUT -p udp --dport 123 -j ACCEPT
   ip6tables -A INPUT -p udp --sport 123 -j ACCEPT
+  {% endif %}
 
   # Additional custom rules.
   {% for rule in firewall_ip6_additional_rules %}
@@ -131,6 +159,16 @@ if [ -x "$(which ip6tables 2>/dev/null)" ]; then
   {% endif %}
 
   # Drop all other traffic.
-  ip6tables -A INPUT -j {{ firewall_disallow_method | default('DROP') }}
+  ip6tables -A INPUT -j {{ firewall_disallow_method }}
 
+  {% if firewall_fallback_rule_disallow_forward -%}
+  # Drop all other FORWARD traffic.
+  ip6tables -A FORWARD -j {{ firewall_disallow_method }}
+  {% endif %}
+
+  {% if firewall_fallback_rule_disallow_output -%}
+  # Drop all other OUTPUT traffic.
+  ip6tables -A OUTPUT -j {{ firewall_disallow_method }}
+  {% endif %}
+{% endif %}
 fi
