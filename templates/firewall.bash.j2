@@ -85,10 +85,14 @@ iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 # Log EVERYTHING (ONLY for Debug).
 # iptables -A INPUT -j LOG
+# iptables -A FORWARD -j LOG
+# iptables -A OUTPUT -j LOG
 
 {% if firewall_log_dropped_packets %}
 # Log other incoming requests (all of which are dropped) at 15/minute max.
-iptables -A INPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed by firewall: "
+iptables -A INPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed INPUT by firewall: "
+iptables -A FORWARD -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed FORWARD by firewall: "
+iptables -A OUTPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed OUTPUT by firewall: "
 {% endif %}
 
 # Disallow all other traffic.
@@ -154,10 +158,14 @@ if [ -x "$(which ip6tables 2>/dev/null)" ]; then
 
   # Log EVERYTHING (ONLY for Debug).
   # ip6tables -A INPUT -j LOG
+  # ip6tables -A FORWARD -j LOG
+  # ip6tables -A OUTPUT -j LOG
 
   {% if firewall_log_dropped_packets %}
   # Log other incoming requests (all of which are dropped) at 15/minute max.
-  ip6tables -A INPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed by firewall: "
+  ip6tables -A INPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed INPUT by firewall: "
+  ip6tables -A FORWARD -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed FORWARD by firewall: "
+  ip6tables -A OUTPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed OUTPUT by firewall: "
   {% endif %}
 
   # Drop all other traffic.
