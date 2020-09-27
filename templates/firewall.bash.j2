@@ -20,6 +20,8 @@
 #
 # @author Jeff Geerling
 
+set -euo pipefail
+
 # No spoofing.
 if [ -e /proc/sys/net/ipv4/conf/all/rp_filter ]
 then
