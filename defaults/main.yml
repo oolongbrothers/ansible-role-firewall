@@ -25,4 +25,5 @@ firewall_ip6_disallow_all: false
 firewall_fallback_rule_disallow_forward: false
 firewall_fallback_rule_disallow_output: false
 
+firewall_all_loopback_input_allowed: true
 firewall_ntp_allowed: true

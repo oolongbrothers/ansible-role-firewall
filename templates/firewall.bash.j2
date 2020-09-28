@@ -43,8 +43,13 @@ iptables -t mangle -F
 iptables -F
 iptables -X
 
+iptables -A INPUT -m conntrack --ctstate INVALID -j DROP
+iptables -A FORWARD -m conntrack --ctstate INVALID -j DROP
+
+{% if firewall_all_loopback_input_allowed %}
 # Accept traffic from loopback interface (localhost).
 iptables -A INPUT -i lo -j ACCEPT
+{% endif %}
 
 # Forwarded ports.
 {# Add a rule for each forwarded port #}
@@ -82,6 +87,7 @@ iptables -A INPUT -p udp --sport 123 -j ACCEPT
 
 # Allow established connections:
 iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 # Log EVERYTHING (ONLY for Debug).
 # iptables -A INPUT -j LOG
@@ -91,19 +97,24 @@ iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 {% if firewall_log_dropped_packets %}
 # Log other incoming requests (all of which are dropped) at 15/minute max.
 iptables -A INPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed INPUT by firewall: "
-iptables -A FORWARD -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed FORWARD by firewall: "
-iptables -A OUTPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed OUTPUT by firewall: "
 {% endif %}
-
-# Disallow all other traffic.
+# Disallow all other INPUT traffic.
 iptables -A INPUT -j {{ firewall_disallow_method }}
 
 {% if firewall_fallback_rule_disallow_forward %}
+{% if firewall_log_dropped_packets %}
+# Log other forwarded requests (all of which are dropped) at 15/minute max.
+iptables -A FORWARD -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed FORWARD by firewall: "
+{% endif %}
 # Disallow all other FORWARD traffic.
 iptables -A FORWARD -j {{ firewall_disallow_method }}
 {% endif %}
 
 {% if firewall_fallback_rule_disallow_output %}
+{% if firewall_log_dropped_packets %}
+# Log other incoming requests (all of which are dropped) at 15/minute max.
+iptables -A OUTPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed OUTPUT by firewall: "
+{% endif %}
 # Disallow all other OUTPUT traffic.
 iptables -A OUTPUT -j {{ firewall_disallow_method }}
 {% endif %}
@@ -163,21 +174,27 @@ if [ -x "$(which ip6tables 2>/dev/null)" ]; then
 
   {% if firewall_log_dropped_packets %}
   # Log other incoming requests (all of which are dropped) at 15/minute max.
-  ip6tables -A INPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed INPUT by firewall: "
-  ip6tables -A FORWARD -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed FORWARD by firewall: "
-  ip6tables -A OUTPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed OUTPUT by firewall: "
+  ip6tables -A INPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed INPUT by firewall: "  
   {% endif %}
 
   # Drop all other traffic.
   ip6tables -A INPUT -j {{ firewall_disallow_method }}
 
   {% if firewall_fallback_rule_disallow_forward -%}
-  # Drop all other FORWARD traffic.
+  {% if firewall_log_dropped_packets %}
+  # Log other forwarded requests (all of which are dropped) at 15/minute max.
+  ip6tables -A FORWARD -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed FORWARD by firewall: "
+  {% endif %}
+  # Deny all other FORWARD traffic.
   ip6tables -A FORWARD -j {{ firewall_disallow_method }}
   {% endif %}
 
   {% if firewall_fallback_rule_disallow_output -%}
-  # Drop all other OUTPUT traffic.
+  {% if firewall_log_dropped_packets %}
+  # Log other outgoing requests (all of which are dropped) at 15/minute max.
+  ip6tables -A OUTPUT -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Disallowed OUTPUT by firewall: "
+  {% endif %}
+  # Deny all other OUTPUT traffic.
   ip6tables -A OUTPUT -j {{ firewall_disallow_method }}
   {% endif %}
 {% endif %}
