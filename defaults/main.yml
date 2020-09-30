@@ -12,6 +12,7 @@ firewall_forwarded_tcp_ports: []
 firewall_forwarded_udp_ports: []
 firewall_additional_rules: []
 firewall_ip6_additional_rules: []
+
 firewall_log_dropped_packets: true
 
 # Set to true to ensure other firewall management software is disabled.
@@ -24,6 +25,7 @@ firewall_disallow_method_ip6: "{{ firewall_disallow_method }}"
 firewall_ip6_disallow_all: false
 firewall_fallback_rule_disallow_forward: false
 firewall_fallback_rule_disallow_output: false
+firewall_allow_established_related: true
 
 firewall_all_loopback_input_allowed: true
 firewall_ntp_allowed: true

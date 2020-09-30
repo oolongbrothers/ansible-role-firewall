@@ -85,9 +85,11 @@ iptables -A INPUT -p udp --sport 123 -j ACCEPT
 {{ rule }}
 {% endfor %}
 
+{% if firewall_allow_established_related %}
 # Allow established connections:
 iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+{% endif %}
 
 # Log EVERYTHING (ONLY for Debug).
 # iptables -A INPUT -j LOG
@@ -164,8 +166,11 @@ if [ -x "$(which ip6tables 2>/dev/null)" ]; then
   {{ rule }}
   {% endfor %}
 
+  {% if firewall_allow_established_related %}
   # Allow established connections:
   ip6tables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+  ip6tables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+  {% endif %}
 
   # Log EVERYTHING (ONLY for Debug).
   # ip6tables -A INPUT -j LOG
