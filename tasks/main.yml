@@ -1,4 +1,16 @@
 ---
+- name: Enable iptables-nft on Ubuntu 20.04
+  community.general.alternatives:
+    name: iptables
+    path: /usr/sbin/iptables-nft
+  when: ansible_distribution == "Ubuntu" and ansible_distribution_version == '20.04'
+
+- name: Enable ip6tables-nft on Ubuntu 20.04
+  community.general.alternatives:
+    name: ip6tables
+    path: /usr/sbin/ip6tables-nft
+  when: ansible_distribution == "Ubuntu" and ansible_distribution_version == '20.04'
+
 - name: Ensure iptables is present.
   package:
     name: iptables
